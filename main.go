@@ -22,7 +22,7 @@ func main() {
 		raw := parseRaw(str)
 
 		fmt.Printf("{\"raw\": \"%v\", \"temp\": %v, \"hum\": %v, \"created_at\": \"%v\"}\n", raw,
-			parseTemp(raw), parseHum(raw), time.Now().UTC().Format("2006-01-02T15:04:05-0700"))
+			parseValue(raw, 6, 3, 4), parseValue(raw, 7, 8, 5), time.Now().UTC().Format("2006-01-02T15:04:05-0700"))
 	}
 }
 
@@ -40,15 +40,16 @@ func initializeCul(c *serial.Config) *serial.Port {
 	return s
 }
 
+/*
+Sometimes the CULFW returns up to ten values if it didn't get read for a longer period.
+In that case, take the laast value and return it
+*/
 func parseRaw(str string) string {
 	values := strings.SplitAfterN(str, "\r\n", 1)
 	return strings.Replace(values[len(values)-1], "\r\n", "", -1)
 }
 
-func parseTemp(str string) string {
-	return fmt.Sprintf("%v%v.%v", string(str[6]), string(str[3]), string(str[4]))
-}
-
-func parseHum(str string) string {
-	return fmt.Sprintf("%v%v.%v", string(str[7]), string(str[8]), string(str[5]))
+// stolen from how fhem parses the data https://github.com/mhop/fhem-mirror/blob/master/fhem/FHEM/14_CUL_WS.pm#L146-L156
+func parseValue(str string, c1 int, c2 int, c3 int) string {
+	return fmt.Sprintf("%v%v.%v", string(str[c1]), string(str[c2]), string(str[c3]))
 }
