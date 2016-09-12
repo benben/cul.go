@@ -1,0 +1,3 @@
+package: github.com/benben/cul.go
+import:
+- package: github.com/tarm/serial
