@@ -10,29 +10,34 @@ import (
 
 func main() {
 	c := &serial.Config{Name: "/dev/ttyACM0", Baud: 38400}
-
-	s, err := serial.OpenPort(c)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	n, err := s.Write([]byte("X21\n"))
-	if err != nil {
-		fmt.Println(err)
-	}
+	s := initializeCul(c)
 
 	var str string
 	r, _ := regexp.Compile(`^K\d{8}[A-Z0-9]{2}`)
 
 	for strings.Count(str, "") <= 1 || !(strings.Contains(str, "\n") && r.MatchString(str)) {
 		buf := make([]byte, 128)
-		n, _ = s.Read(buf)
+		n, _ := s.Read(buf)
 		str += string(buf[:n])
 		raw := parseRaw(str)
 
 		fmt.Printf("{\"raw\": \"%v\", \"temp\": %v, \"hum\": %v, \"created_at\": \"%v\"}\n", raw,
 			parseTemp(raw), parseHum(raw), time.Now().UTC().Format("2006-01-02T15:04:05-0700"))
 	}
+}
+
+func initializeCul(c *serial.Config) *serial.Port {
+	s, err := serial.OpenPort(c)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	_, err = s.Write([]byte("X21\n"))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return s
 }
 
 func parseRaw(str string) string {
