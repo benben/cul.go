@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/tarm/serial"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -54,6 +55,8 @@ func parseRaw(str string) string {
 
 // stolen from how fhem parses the data
 // https://github.com/mhop/fhem-mirror/blob/master/fhem/FHEM/14_CUL_WS.pm#L146-L156
-func parseValue(str string, c1 int, c2 int, c3 int) string {
-	return fmt.Sprintf("%v%v.%v", string(str[c1]), string(str[c2]), string(str[c3]))
+func parseValue(str string, c1 int, c2 int, c3 int) float64 {
+	floatStr := fmt.Sprintf("%v%v.%v", string(str[c1]), string(str[c2]), string(str[c3]))
+	float, _ := strconv.ParseFloat(floatStr, 64)
+	return float
 }
