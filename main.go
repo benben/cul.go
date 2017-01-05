@@ -46,15 +46,26 @@ func readAndParse(s *serial.Port) {
 	// K81217077F7 (less less than zero degrees)
 	r, _ := regexp.Compile(`^K\d{8}[A-Z0-9]{2}`)
 
-	// read from serial as long as we didn't receive something already
-	// or it didn't end with \n and isn't a full value yet
-	for strings.Count(str, "") <= 1 || !(strings.Contains(str, "\n") && r.MatchString(str)) {
-		str += readRaw(s)
-		raw := parseRaw(str)
+	timeoutChannel := make(chan bool, 1)
+	go func() {
+		// read from serial as long as we didn't receive something already
+		// or it didn't end with \n and isn't a full value yet
+		for strings.Count(str, "") <= 1 || !(strings.Contains(str, "\n") && r.MatchString(str)) {
+			str += readRaw(s)
+			raw := parseRaw(str)
 
-		fmt.Printf("{\"raw\": \"%v\", \"temp\": %v, \"hum\": %v, \"created_at\": \"%v\"}\n", raw,
-			parseValue(raw, 6, 3, 4)*parseSign(raw), parseValue(raw, 7, 8, 5), time.Now().UTC().Format("2006-01-02T15:04:05-0700"))
+			fmt.Printf("{\"raw\": \"%v\", \"temp\": %v, \"hum\": %v, \"created_at\": \"%v\"}\n", raw,
+				parseValue(raw, 6, 3, 4)*parseSign(raw), parseValue(raw, 7, 8, 5), time.Now().UTC().Format("2006-01-02T15:04:05-0700"))
+		}
+		timeoutChannel <- true
+	}()
+
+	select {
+	case <-timeoutChannel:
+	case <-time.After(time.Minute * 4):
+		fmt.Println("{\"error\": \"timed out\"}")
 	}
+
 }
 
 func readRaw(s *serial.Port) string {
