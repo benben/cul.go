@@ -41,6 +41,9 @@ func read(s *serial.Port) {
 
 func readAndParse(s *serial.Port) {
 	// CULFW always returns a "K", followed by 8 digits, followed by a hex number
+	// examples:
+	// K01168172FB
+	// K81217077F7 (less less than zero degrees)
 	r, _ := regexp.Compile(`^K\d{8}[A-Z0-9]{2}`)
 
 	// read from serial as long as we didn't receive something already
@@ -50,7 +53,7 @@ func readAndParse(s *serial.Port) {
 		raw := parseRaw(str)
 
 		fmt.Printf("{\"raw\": \"%v\", \"temp\": %v, \"hum\": %v, \"created_at\": \"%v\"}\n", raw,
-			parseValue(raw, 6, 3, 4), parseValue(raw, 7, 8, 5), time.Now().UTC().Format("2006-01-02T15:04:05-0700"))
+			parseValue(raw, 6, 3, 4)*parseSign(raw), parseValue(raw, 7, 8, 5), time.Now().UTC().Format("2006-01-02T15:04:05-0700"))
 	}
 }
 
@@ -93,4 +96,12 @@ func parseValue(str string, c1 int, c2 int, c3 int) float64 {
 	floatStr := fmt.Sprintf("%v%v.%v", string(str[c1]), string(str[c2]), string(str[c3]))
 	float, _ := strconv.ParseFloat(floatStr, 64)
 	return float
+}
+
+func parseSign(str string) float64 {
+	var sign float64 = 1
+	if str[1]&8 == 8 {
+		sign = -1
+	}
+	return sign
 }
